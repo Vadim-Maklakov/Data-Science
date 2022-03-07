@@ -1,0 +1,736 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Mar  5 18:44:05 2022
+
+@author: mvg
+"""
+from tabular_nov_2021_final import df_transform
+from tabular_nov_2021_final import dfsplit
+from tabular_nov_2021_final import train
+
+import autokeras as ak
+import keras_tuner as kt
+from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import PowerTransformer
+from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.preprocessing import StandardScaler
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+from tensorflow import keras
+from keras.regularizers import l1
+from keras.regularizers import l2
+from keras.backend import sigmoid
+
+from tensorflow.keras import activations
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import initializers
+from tensorflow.keras import Input
+from tensorflow.keras import layers
+from tensorflow.keras import regularizers
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import InputLayer
+from tensorflow.keras.constraints import max_norm
+from tensorflow.keras.layers import LayerNormalization
+from tensorflow.keras.layers.experimental.preprocessing import Normalization
+from tensorflow.keras.callbacks import EarlyStopping
+
+# Autokeras - Time of execution - 1 hour 42 mit
+x_all, y_all = df_transform(train, scaler="ss")
+
+search = ak.StructuredDataClassifier(max_trials=15)
+search.fit(x=x_all, y=y_all, batch_size=8196, verbose=1)
+model = search.export_model()
+
+# =============================================================================
+# model.save("model_tps_nov_2021")
+# model.json = model.to_json()
+# with open("model.json", "w") as json_file:
+#     json_file.write(model.json)
+# Formater json model:
+# {'name': 'sequential',
+#  'layers': [{'class_name': 'InputLayer',
+#    'config': {'batch_input_shape': (None, 100),
+#     'dtype': 'float64',
+#     'sparse': False,
+#     'ragged': False,
+#     'name': 'input_1'}},
+#   {'class_name': 'Normalization',
+#    'config': {'name': 'normalization',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'axis': (-1,),
+#     'mean': None,
+#     'variance': None}},
+#   {'class_name': 'Dense',
+#    'config': {'name': 'layer_1',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'units': 32,
+#     'activation': 'linear',
+#     'use_bias': True,
+#     'kernel_initializer': {'class_name': 'GlorotUniform',
+#      'config': {'seed': None}},
+#     'bias_initializer': {'class_name': 'Zeros', 'config': {}},
+#     'kernel_regularizer': None,
+#     'bias_regularizer': None,
+#     'activity_regularizer': None,
+#     'kernel_constraint': None,
+#     'bias_constraint': None}},
+#   {'class_name': 'Activation',
+#    'config': {'name': 'relu_1',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'activation': 'relu'}},
+#   {'class_name': 'Dropout',
+#    'config': {'name': 'dropout',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'rate': 0.25,
+#     'noise_shape': None,
+#     'seed': None}},
+#   {'class_name': 'Dense',
+#    'config': {'name': 'layer_2',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'units': 32,
+#     'activation': 'linear',
+#     'use_bias': True,
+#     'kernel_initializer': {'class_name': 'GlorotUniform',
+#      'config': {'seed': None}},
+#     'bias_initializer': {'class_name': 'Zeros', 'config': {}},
+#     'kernel_regularizer': None,
+#     'bias_regularizer': None,
+#     'activity_regularizer': None,
+#     'kernel_constraint': None,
+#     'bias_constraint': None}},
+#   {'class_name': 'Activation',
+#    'config': {'name': 'relu_2',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'activation': 'relu'}},
+#   {'class_name': 'Dropout',
+#    'config': {'name': 'dropout_1',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'rate': 0.25,
+#     'noise_shape': None,
+#     'seed': None}},
+#   {'class_name': 'Dense',
+#    'config': {'name': 'layer_3',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'units': 32,
+#     'activation': 'linear',
+#     'use_bias': True,
+#     'kernel_initializer': {'class_name': 'GlorotUniform',
+#      'config': {'seed': None}},
+#     'bias_initializer': {'class_name': 'Zeros', 'config': {}},
+#     'kernel_regularizer': None,
+#     'bias_regularizer': None,
+#     'activity_regularizer': None,
+#     'kernel_constraint': None,
+#     'bias_constraint': None}},
+#   {'class_name': 'Activation',
+#    'config': {'name': 'relu_3',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'activation': 'relu'}},
+#   {'class_name': 'Dropout',
+#    'config': {'name': 'dropout_2',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'rate': 0.25,
+#     'noise_shape': None,
+#     'seed': None}},
+#   {'class_name': 'Dense',
+#    'config': {'name': 'layer_4',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'units': 1,
+#     'activation': 'linear',
+#     'use_bias': True,
+#     'kernel_initializer': {'class_name': 'GlorotUniform',
+#      'config': {'seed': None}},
+#     'bias_initializer': {'class_name': 'Zeros', 'config': {}},
+#     'kernel_regularizer': None,
+#     'bias_regularizer': None,
+#     'activity_regularizer': None,
+#     'kernel_constraint': None,
+#     'bias_constraint': None}},
+#   {'class_name': 'Activation',
+#    'config': {'name': 'sigmoid_1',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'activation': 'sigmoid'}}]}
+# 
+# =============================================================================
+# 2. Finding hyperparameters
+# Look for  learning_rate 
+def learn_rate(hp, learn_rate=list(np.logspace(-2, -4, num=21))):
+    model = Sequential()
+    # 0.Input
+    model.add(Input(shape=(100,), dtype='float64', name="input_1"))
+    # Normalization input == StandardScaler
+    model.add(Normalization(name='normalization'))
+    
+    # Hidden layer 1
+    # 1.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_1"))
+    # 1.2 Activation for fisrt hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_1"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 2
+    # 2.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_2"))
+    # 2.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_2"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 3
+    # 3.1 Initializer for third hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_3"))
+    # 3.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_3"))
+    model.add(layers.Dropout(.25))
+    
+    # 4. Final sigmoid
+    model.add(layers.Dense(units=1, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_4"))
+    model.add(layers.Activation(activations.sigmoid, name="sigmoid_1"))
+    
+    learn_rate = hp.Choice("learning_rate", learn_rate)
+    model.compile(loss='binary_crossentropy', 
+              optimizer = tf.keras.optimizers.Adam(learning_rate=learn_rate),
+              metrics=['accuracy',tf.keras.metrics.AUC(name='auc')])
+    return model
+
+
+# for finding l1 value  aka lasso regression
+def l1_reg_kernel(hp, l1_reg = list(np.logspace(-1.5, -4, num=21))):
+    model = Sequential()
+    l1_val = hp.Choice("l1", l1_reg)
+    learning_rate = 0.0012589254117941675
+    # 0.Input
+    model.add(Input(shape=(100,), dtype='float64', name="input_1"))
+    # Normalization input == StandardScaler
+    model.add(Normalization(name='normalization'))
+   
+    # Hidden layer 1
+    # 1.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_1"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_val)))
+        #bias_regularizer=tf.keras.regularizers.l1(0.01),
+        #activity_regularizer=tf.keras.regularizers.l1(0.01)))
+    # 1.2 Activation for fisrt hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_1"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 2
+    # 2.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_2"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_val)))
+        # bias_regularizer=tf.keras.regularizers.l1(0.01),
+        # activity_regularizer=tf.keras.regularizers.l1(0.01)))
+    # 2.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_2"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 3
+    # 3.1 Initializer for third hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_3"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_val)))
+        # bias_regularizer=tf.keras.regularizers.l1(0.01),
+        # activity_regularizer=tf.keras.regularizers.l1(0.01)))
+    # 3.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_3"))
+    model.add(layers.Dropout(.25))
+    
+    # 4. Final sigmoid
+    model.add(layers.Dense(units=1, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_4"))
+    model.add(layers.Activation(activations.sigmoid, name="sigmoid_1"))
+    
+    model.compile(loss='binary_crossentropy', 
+              optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate),
+              metrics=['accuracy',tf.keras.metrics.AUC(name='auc')])
+    return model
+
+
+def l2_reg_bias(hp, l2_reg = list(np.logspace(-1.8, -4, num=23))):
+    model = Sequential()
+    l1_kernel= 0.0023713737056616554
+    l2_val = hp.Choice("l2", l2_reg)
+    learning_rate = 0.0012589254117941675
+    
+    # 0.Input
+    model.add(Input(shape=(100,), dtype='float64', name="input_1"))
+    model.add(Normalization(name='normalization'))
+   
+    # Hidden layer 1
+    # 1.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_1"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_kernel),
+        bias_regularizer=tf.keras.regularizers.l2(l2_val)))
+        # activity_regularizer=tf.keras.regularizers.l1(0.01)))
+    # 1.2 Activation for fisrt hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_1"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 2
+    # 2.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_2"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_kernel),
+        bias_regularizer=tf.keras.regularizers.l2(l2_val)))
+        # activity_regularizer=tf.keras.regularizers.l1(0.01)))
+    # 2.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_2"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 3
+    # 3.1 Initializer for third hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_3"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_kernel),
+        bias_regularizer=tf.keras.regularizers.l2(l2_val)))
+        # activity_regularizer=tf.keras.regularizers.l1(0.01)))
+    # 3.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_3"))
+    model.add(layers.Dropout(.25))
+    
+    # 4. Final sigmoid
+    model.add(layers.Dense(units=1, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_4"))
+    model.add(layers.Activation(activations.sigmoid, name="sigmoid_1"))
+    
+    model.compile(loss='binary_crossentropy', 
+              optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate),
+              metrics=['accuracy',tf.keras.metrics.AUC(name='auc')])
+    return model
+
+
+def l1_reg_act(hp, l1_reg_act = list(np.logspace(-1.8, -4, num=23))):
+    learning_rate = 0.0012589254117941675
+    l1_kernel=0.0023713737056616554
+    l2_bias = 0.0007943282347242813
+    l1_val = hp.Choice("l1", l1_reg_act)
+    
+    model = Sequential()
+    # 0.Input
+    model.add(Input(shape=(100,), dtype='float64', name="input_1"))
+    model.add(Normalization(name='normalization'))
+   
+    # Hidden layer 1
+    # 1.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_1"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_kernel),
+        bias_regularizer=tf.keras.regularizers.l2(l2_bias),
+        activity_regularizer=tf.keras.regularizers.l1(l1_val)))
+    # 1.2 Activation for fisrt hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_1"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 2
+    # 2.1 Initializer for first hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_2"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_kernel),
+        bias_regularizer=tf.keras.regularizers.l2(l2_bias),
+        activity_regularizer=tf.keras.regularizers.l1(l1_val)))
+    # 2.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_2"))
+    model.add(layers.Dropout(.25))
+    
+    # Hidden layer 3
+    # 3.1 Initializer for third hidden layer input linear
+    model.add(layers.Dense(units=32, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_3"))
+    # l1 regularization
+    model.add(layers.Dense(
+        units=32, kernel_regularizer = tf.keras.regularizers.l1(l1_kernel),
+        bias_regularizer=tf.keras.regularizers.l2(l2_bias),
+        activity_regularizer=tf.keras.regularizers.l1(l1_val)))
+    # 3.2 Activation for second hidden layer
+    model.add(layers.Activation(activations.relu, name="relu_3"))
+    model.add(layers.Dropout(.25))
+    
+    # 4. Final sigmoid
+    model.add(layers.Dense(units=1, kernel_initializer="GlorotUniform",
+        bias_initializer='zeros', name="layer_4"))
+    model.add(layers.Activation(activations.sigmoid, name="sigmoid_1"))
+    
+    model.compile(loss='binary_crossentropy', 
+              optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate),
+              metrics=['accuracy',tf.keras.metrics.AUC(name='auc')])
+    return model
+
+
+# Check hyperparameters
+
+
+# Finding the optimal learning rate, time of execution - 14 min, 
+# best value - 0.00015849
+callbacks_kt = [EarlyStopping(monitor='val_loss',mode='min',
+                           patience=10,restore_best_weights=True)]
+
+learn_rate(kt.HyperParameters())
+hp = kt.HyperParameters()
+x_train, x_test, y_train, y_test = dfsplit(train, scaler="ss")
+tuner_lr = kt.RandomSearch(
+    hypermodel=learn_rate,
+    objective="val_accuracy",
+    max_trials=5,
+    executions_per_trial=3,
+    overwrite=True,
+    directory="/home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/",
+    project_name="learning_rate")
+tuner_lr.search(x_train, y_train, epochs=1000, validation_data=(x_test, y_test),
+                callbacks=callbacks_kt, batch_size=2048)
+# =============================================================================
+# Best val_accuracy So Far: 0.7468805511792501
+# Total elapsed time: 00h 15m 33s
+# tuner_lr.results_summary()
+# Results summary
+# Results in /home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/learning_rate
+# Showing 10 best trials
+# Objective(name='val_accuracy', direction='max')
+# Trial summary
+# Hyperparameters:
+# learning_rate: 0.0012589254117941675 - the best learn rate
+# Score: 0.7468805511792501
+# Trial summary
+# Hyperparameters:
+# learning_rate: 0.001584893192461114
+# Score: 0.7467416723569235
+# Trial summary
+# Hyperparameters:
+# learning_rate: 0.0025118864315095794
+# Score: 0.7462666630744934
+# Trial summary
+# Hyperparameters:
+# learning_rate: 0.0031622776601683794
+# Score: 0.7462361057599386
+# Trial summary
+# Hyperparameters:
+# learning_rate: 0.00630957344480193
+# Score: 0.7456833322842916
+# =============================================================================
+
+
+# Find l1 regularization for kernel
+l1_reg_kernel(kt.HyperParameters())
+hp = kt.HyperParameters()
+x_train, x_test, y_train, y_test = dfsplit(train, scaler="ss")
+tuner_l1_kernel = kt.RandomSearch(
+    hypermodel=l1_reg_kernel,
+    objective="val_accuracy",
+    max_trials=5,
+    executions_per_trial=3,
+    directory="/home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/",
+    project_name="l_1_reg_kernel")
+tuner_l1_kernel.search(x_train, y_train, epochs=1000, validation_data=(x_test, y_test),
+                callbacks=callbacks_kt, batch_size=2048)
+# =============================================================================
+# Best val_accuracy So Far: 0.7479638854662577
+# Total elapsed time: 00h 33m 11s
+# tuner_l1_kernel.results_summary()
+# Results summary
+# Results in /home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/l_1_reg_kernel
+# Showing 10 best trials
+# Objective(name='val_accuracy', direction='max')
+# Trial summary
+# Hyperparameters:
+# l1:  - the best
+# Score: 0.7479638854662577
+# Trial summary
+# Hyperparameters:
+# l1: 0.00023713737056616554
+# Score: 0.7475888927777609
+# Trial summary
+# Hyperparameters:
+# l1: 0.00042169650342858224
+# Score: 0.7475305398305258
+# Trial summary
+# Hyperparameters:
+# l1: 0.01778279410038923
+# Score: 0.726544459660848
+# Trial summary
+# Hyperparameters:
+# l1: 0.03162277660168379
+# Score: 0.5547916690508524
+# =============================================================================
+
+
+l2_reg_bias(kt.HyperParameters())
+hp = kt.HyperParameters()
+x_train, x_test, y_train, y_test = dfsplit(train, scaler="ss")
+tuner_l2_bias = kt.RandomSearch(
+    hypermodel=l2_reg_bias,
+    objective="val_accuracy",
+    max_trials=5,
+    executions_per_trial=3,
+    directory="/home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/",
+    project_name="l2_reg_bias")
+tuner_l2_bias.search(x_train, y_train, epochs=1000, validation_data=(x_test, y_test),
+                callbacks=callbacks_kt, batch_size=2048)
+
+# =============================================================================
+# Best val_accuracy So Far: 0.7480388879776001
+# Total elapsed time: 00h 39m 53s
+# tuner_l2_bias.results_summary()
+# Results summary
+# Results in /home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/l2_reg_bias
+# Showing 10 best trials
+# Objective(name='val_accuracy', direction='max')
+# Trial summary
+# Hyperparameters:
+# l2: 0.0007943282347242813 - the best
+# Score: 0.7480388879776001
+# Trial summary
+# Hyperparameters:
+# l2: 0.01
+# Score: 0.7478166619936625
+# Trial summary
+# Hyperparameters:
+# l2: 0.000630957344480193
+# Score: 0.7477749983469645
+# Trial summary
+# Hyperparameters:
+# l2: 0.0031622776601683794
+# Score: 0.7477666536966959
+# Trial summary
+# Hyperparameters:
+# l2: 0.012589254117941668
+# Score: 0.7477583289146423
+# =============================================================================
+
+
+
+l1_reg_act(kt.HyperParameters())
+hp = kt.HyperParameters()
+x_train, x_test, y_train, y_test = dfsplit(train, scaler="ss")
+tuner_l1_act = kt.RandomSearch(
+    hypermodel=l1_reg_act,
+    objective="val_accuracy",
+    max_trials=5,
+    executions_per_trial=3,
+    directory="/home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/",
+    project_name="l1_reg_act")
+tuner_l1_act.search(x_train, y_train, epochs=1000, validation_data=(x_test, y_test),
+                callbacks=callbacks_kt, batch_size=2048)
+
+# =============================================================================
+# Best val_accuracy So Far: 0.7475805481274923
+# Total elapsed time: 00h 33m 12s
+# tuner_l1_act.results_summary()
+# Results summary
+# Results in /home/mvg/Documents/Ewps/ML_DL/ML/03_Tabular_Playground_Series_Nov_2021/kt_tuner/l1_reg_act
+# Showing 10 best trials
+# Objective(name='val_accuracy', direction='max')
+# Trial summary
+# Hyperparameters:
+# l1: 0.0001258925411794166 -  the best values
+# Score: 0.7475805481274923 
+# Trial summary
+# Hyperparameters:
+# l1: 0.0007943282347242813
+# Score: 0.7473694483439127
+# Trial summary
+# Hyperparameters:
+# l1: 0.007943282347242814
+# Score: 0.5859944423039755
+# Trial summary
+# Hyperparameters:
+# l1: 0.015848931924611134
+# Score: 0.5060083270072937
+# Trial summary
+# Hyperparameters:
+# l1: 0.012589254117941668
+# Score: 0.5060083270072937
+# =============================================================================
+
+
+# Find regression model using  Auto-keras Structured Data Regression
+# Prepare data
+x_all_ss, y_all_ss = df_transform(train, scaler="ss")
+
+# It tries 15 different models.
+reg_ss = ak.StructuredDataRegressor(max_trials=3, overwrite=True)
+reg_ss.fit(x_all_ss, y_all_ss, epochs=15)
+# =============================================================================
+# adam=0.001
+# Best val_loss So Far: 0.19273795187473297
+# Total elapsed time: 03h 07m 14s
+# =============================================================================
+model_reg_ss = reg_ss.export_model()
+# =============================================================================
+# model_reg_ss.summary()
+# Model: "model"
+# _________________________________________________________________
+#  Layer (type)                Output Shape              Param #   
+# =================================================================
+#  input_1 (InputLayer)        [(None, 100)]             0         
+#                                                                  
+#  multi_category_encoding (Mu  (None, 100)              0         
+#  ltiCategoryEncoding)                                            
+#                                                                  
+#  normalization (Normalizatio  (None, 100)              201       
+#  n)                                                              
+#                                                                  
+#  dense (Dense)               (None, 32)                3232      
+#                                                                  
+#  re_lu (ReLU)                (None, 32)                0         
+#                                                                  
+#  dense_1 (Dense)             (None, 32)                1056      
+#                                                                  
+#  re_lu_1 (ReLU)              (None, 32)                0         
+#                                                                  
+#  dropout (Dropout)           (None, 32)                0         
+#                                                                  
+#  regression_head_1 (Dense)   (None, 1)                 33        
+# =============================================================================
+# Total params: 4,522
+# Trainable params: 4,321
+# Non-trainable params: 201
+# =============================================================================
+# model_reg_ss.get_config() - convert to json, see bellow
+# =============================================================================
+# {'name': 'model',
+#  'layers': [{'class_name': 'InputLayer',
+#    'config': {'batch_input_shape': (None, 100),
+#     'dtype': 'float64',
+#     'sparse': False,
+#     'ragged': False,
+#     'name': 'input_1'},
+#    'name': 'input_1',
+#    'inbound_nodes': []},
+#   {'class_name': 'Custom>MultiCategoryEncoding',
+#    'config': {'name': 'multi_category_encoding',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'encoding': ListWrapper(['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'])},
+#    'name': 'multi_category_encoding',
+#    'inbound_nodes': [[['input_1', 0, 0, {}]]]},
+#   {'class_name': 'Normalization',
+#    'config': {'name': 'normalization',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'axis': (-1,),
+#     'mean': None,
+#     'variance': None},
+#    'name': 'normalization',
+#    'inbound_nodes': [[['multi_category_encoding', 0, 0, {}]]]},
+#   {'class_name': 'Dense',
+#    'config': {'name': 'dense',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'units': 32,
+#     'activation': 'linear',
+#     'use_bias': True,
+#     'kernel_initializer': {'class_name': 'GlorotUniform',
+#      'config': {'seed': None}},
+#     'bias_initializer': {'class_name': 'Zeros', 'config': {}},
+#     'kernel_regularizer': None,
+#     'bias_regularizer': None,
+#     'activity_regularizer': None,
+#     'kernel_constraint': None,
+#     'bias_constraint': None},
+#    'name': 'dense',
+#    'inbound_nodes': [[['normalization', 0, 0, {}]]]},
+#   {'class_name': 'ReLU',
+#    'config': {'name': 're_lu',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'max_value': None,
+#     'negative_slope': array(0., dtype=float32),
+#     'threshold': array(0., dtype=float32)},
+#    'name': 're_lu',
+#    'inbound_nodes': [[['dense', 0, 0, {}]]]},
+#   {'class_name': 'Dense',
+#    'config': {'name': 'dense_1',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'units': 32,
+#     'activation': 'linear',
+#     'use_bias': True,
+#     'kernel_initializer': {'class_name': 'GlorotUniform',
+#      'config': {'seed': None}},
+#     'bias_initializer': {'class_name': 'Zeros', 'config': {}},
+#     'kernel_regularizer': None,
+#     'bias_regularizer': None,
+#     'activity_regularizer': None,
+#     'kernel_constraint': None,
+#     'bias_constraint': None},
+#    'name': 'dense_1',
+#    'inbound_nodes': [[['re_lu', 0, 0, {}]]]},
+#   {'class_name': 'ReLU',
+#    'config': {'name': 're_lu_1',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'max_value': None,
+#     'negative_slope': array(0., dtype=float32),
+#     'threshold': array(0., dtype=float32)},
+#    'name': 're_lu_1',
+#    'inbound_nodes': [[['dense_1', 0, 0, {}]]]},
+#   {'class_name': 'Dropout',
+#    'config': {'name': 'dropout',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'rate': 0.25,
+#     'noise_shape': None,
+#     'seed': None},
+#    'name': 'dropout',
+#    'inbound_nodes': [[['re_lu_1', 0, 0, {}]]]},
+#   {'class_name': 'Dense',
+#    'config': {'name': 'regression_head_1',
+#     'trainable': True,
+#     'dtype': 'float32',
+#     'units': 1,
+#     'activation': 'linear',
+#     'use_bias': True,
+#     'kernel_initializer': {'class_name': 'GlorotUniform',
+#      'config': {'seed': None}},
+#     'bias_initializer': {'class_name': 'Zeros', 'config': {}},
+#     'kernel_regularizer': None,
+#     'bias_regularizer': None,
+#     'activity_regularizer': None,
+#     'kernel_constraint': None,
+#     'bias_constraint': None},
+#    'name': 'regression_head_1',
+#    'inbound_nodes': [[['dropout', 0, 0, {}]]]}],
+#  'input_layers': [['input_1', 0, 0]],
+#  'output_layers': [['regression_head_1', 0, 0]]}
+# =============================================================================
